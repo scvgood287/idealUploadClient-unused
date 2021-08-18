@@ -3,7 +3,8 @@ import _ from 'lodash';
 
 import Upload from './components/Upload';
 import ImageList from './components/ImageList';
-import { rules, createImageByFile, insertImage, useAsync } from './apis/index';
+import useAsync from './apis/useAsync';
+import { rules, createImageByFile, insertImage } from './apis/index';
 
 const App = () => {
 
