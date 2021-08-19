@@ -39,16 +39,12 @@ const App = () => {
   // skip = default false, 해당 요청을 useEffect로 실행할지 말지 결정. true시 건너 뜀
   // body = 요청 시에 같이 보낼 데이터, Get은 body를 담을 수 없음. Post 시 사용.
   const [getCollectionsState, getCollections] = useAsync('Get' ,'collections');
+  // eslint-disable-next-line
   const [postDocumentsState, postDocuments] = useAsync('Post', 'documents', true);
-  const [postImagesState, postImages] = useAsync('Post', 'images', true);
+  // const [postImagesState, postImages] = useAsync('Post', 'images', true);
 
+  // eslint-disable-next-line
   const { loading, data, error } = getCollectionsState;
-  
-  let jotai;
-  if (loading) jotai = (<div>로딩중..</div>);
-  if (error) jotai = (<div>에러가 발생했습니다</div>);
-  if (!data) jotai = null;
-  console.log(data);
 
   // 파일 임시 업로드
   const handleFileInput = (e) => {
@@ -84,14 +80,95 @@ const App = () => {
     }
   }
 
+  const handleUploadImages = async () => {
+    console.log(images);
+    let temp = Object.entries(_.cloneDeep(images));
+    const errors = temp.splice(temp.findIndex(e => e[0] === 'err'), 1);
+
+    const hasError = Object.values(errors[0][1]).reduce((acc, curr) => { return acc + curr.length}, 0) !== 0;;
+    if (hasError) { console.log('Error Exist'); return; }
+
+    const findTarget = (data, collection) => data[data.findIndex(e => Object.keys(e)[0] === collection)][collection];
+
+    const validGenders = temp.map((type) => {
+      const [uploadType, genders] = type;
+      const upload = Object.entries(genders)
+      .map(([gender, files]) => files.length !== 0 ? gender : undefined)
+      .filter(e => e !== undefined);
+
+      return upload.length !== 0 ? { uploadType, uploadGenders: upload } : undefined;
+    }).filter(e => e !== undefined);
+
+    let newGenderList = new Set();
+    validGenders.forEach((validGender) => (
+      validGender.uploadGenders.forEach((uploadGender) => {
+        const existGenders = findTarget(data, 'gender').map(({ name }) => name);
+
+        if (!existGenders.includes(uploadGender)) newGenderList.add(uploadGender);
+      })
+    ));
+    const newGenders = ['gender', [...newGenderList].map(name => ({ name }))];
+
+    if (newGenderList.size !== 0) await postDocuments(newGenders);
+
+    // gender update complete, Get updatedData
+    await getCollections();
+
+    const genderCollections = findTarget(data, 'gender');
+
+    let newGroupList = genderCollections.map(gender => ({
+      ...gender,
+      uploadList: new Set([]),
+    }));
+    validGenders.forEach((upload) => {
+      const { uploadType, uploadGenders } = upload;
+
+      const targetGenders = temp
+        .filter(type => type[0] === uploadType)
+        .map(type => type[1])[0];
+      const resGroups = findTarget(data, 'group').map(({ name }) => name);
+
+      uploadGenders.forEach((gender) => {
+        targetGenders[gender].forEach(({ group }) => {
+          if (!resGroups.includes(group)) {
+            newGroupList
+            .filter(({ name }) => name === gender)[0]
+            .uploadList
+            .add(group);
+          };
+        });
+      });
+    });
+
+    let newGroups = ['group', []];
+    newGroupList.forEach((gender) => {
+      const { _id, uploadList } = gender;
+      
+      if (uploadList.size !== 0) {
+        [...uploadList].forEach(group => newGroups[1].push({
+          genderId: _id,
+          name: group
+        }));
+      };
+    });
+    if (newGroups[1].length !== 0) await postDocuments(newGroups);
+
+    // gender, group update complete, Get updatedData
+    await getCollections();
+
+    // 여기부터
+    const memberCollections = findTarget(data, 'member');
+    const newMemberList = temp.filter(e => e[0] === 'member')[0][1];
+    console.log(memberCollections);
+    console.log(newMemberList);
+  }
+
   return (
     <>
-      <div>
-        <button onClick={getCollections}>다시 불러오기</button>
-        {jotai}
-      </div>
+      {/* <button onClick={getCollections}>다시 불러오기</button> */}
       <Upload
         onChange={handleFileInput}
+        onClick={handleUploadImages}
       />
       <ImageList
         images={images}

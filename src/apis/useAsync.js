@@ -49,7 +49,7 @@ const useAsync = (reqType, url, skip = false, body = {}) => {
     error: false
   });
 
-  const fetchData = async () => {
+  const fetchData = async (body = {}) => {
     dispatch({ type: 'LOADING' });
     try {
       const data = await resData(reqType, url, body);
@@ -61,7 +61,7 @@ const useAsync = (reqType, url, skip = false, body = {}) => {
 
   useEffect(() => {
     if (skip) return;
-    fetchData();
+    fetchData(body);
     // eslint 설정을 다음 줄에서만 비활성화
     // eslint-disable-next-line
   }, []);

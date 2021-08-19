@@ -1,14 +1,17 @@
 import React, { memo } from 'react';
 
 const Upload = (props) => {
-  const { onChange } = props;
+  const { onChange, onClick } = props;
 
   return (
-    <input
-      type="file"
-      onChange={onChange}
-      multiple
-    />
+    <>
+      <input
+        type="file"
+        onChange={onChange}
+        multiple
+      />
+      <button onClick={onClick}>SEND</button>
+    </>
   );
 }
 export default memo(Upload);
