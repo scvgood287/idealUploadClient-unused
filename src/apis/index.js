@@ -84,4 +84,35 @@ const insertImage = (images, image, rules) => {
   inputData(targetArr, data, compareBy);
 };
 
-export { rules, createImageByFile, insertImage };
+// 서버에서 요청해서 받은 데이터에서 원하는 collection을 선택
+// data = 서버에 요청해서 받아온 collection들
+// collection = data 중 원하는 collection 이름(String)
+const findCollection = (data, collection) => {
+  return data[data.findIndex(e => e.hasOwnProperty(collection))][collection];
+}
+
+// collection 속에 해당 document가 있는지 확인
+// collection = 서버에서 요청해서 받아온 data들 중 collection 하나
+// name = 있는지 확인하고 싶은 document의 name prop(Stirng)
+// preCollectionId = 자신의 상위 collectionId
+// preCollectionProp = prop 명(String)
+const hasDoc = (collection, options) => {
+  const [name, ...ids] = options;
+  
+  return !ids ?
+  collection.some(doc => doc.name === name) :
+  collection.some(doc => doc.name === name && ids.every(id => Object.values(doc).includes(id)));
+}
+
+// document의 고유 id를 받아옴
+// collection = document가 속해있는 collection
+// name = name에 해당하는 고유 id의 정보를 받아올 수 있음
+const getDocId = (collection, options) => {
+  const [name, ...ids] = options;
+
+  return !ids ?
+  collection[collection.findIndex(doc => doc.name === name)]._id :
+  collection[collection.findIndex(doc => doc.name === name && ids.every(id => Object.values(doc).includes(id)))]._id;
+}
+
+export { rules, createImageByFile, insertImage, findCollection, hasDoc, getDocId };

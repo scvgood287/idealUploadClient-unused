@@ -5,12 +5,12 @@ const API_URL = 'http://localhost:5000/api/ideals'
 
 const reducer = (state, action) => {
   switch (action.type) {
-    case 'LOADING':
-      return {
-        loading: true,
-        data: null,
-        error: null
-      };
+    // case 'LOADING':
+    //   return {
+    //     loading: true,
+    //     data: null,
+    //     error: null
+    //   };
     case 'SUCCESS':
       return {
         loading: false,
@@ -34,15 +34,17 @@ const resData = async (reqType, url, body) => {
   switch (reqType) {
     case 'Get':
       res = await axios.get(reqUrl);
+      console.log('get');
       return res.data;
     case 'Post':
       res = await axios.post(reqUrl, body);
+      console.log('post');
       return res.data;
     default: throw new Error(`Unhandled request type: ${reqType}`);
   }
 }
 
-const useAsync = (reqType, url, skip = false, body = {}) => {
+const useAsync = (reqType, url, skip = false, body = {}, deps = []) => {
   const [state, dispatch] = useReducer(reducer, {
     loading: false,
     data: null,
@@ -50,9 +52,10 @@ const useAsync = (reqType, url, skip = false, body = {}) => {
   });
 
   const fetchData = async (body = {}) => {
-    dispatch({ type: 'LOADING' });
+    // dispatch({ type: 'LOADING' });
     try {
       const data = await resData(reqType, url, body);
+      console.log(data);
       dispatch({ type: 'SUCCESS', data });
     } catch (e) {
       dispatch({ type: 'ERROR', error: e });
@@ -64,7 +67,7 @@ const useAsync = (reqType, url, skip = false, body = {}) => {
     fetchData(body);
     // eslint 설정을 다음 줄에서만 비활성화
     // eslint-disable-next-line
-  }, []);
+  }, deps);
 
   return [state, fetchData];
 }
