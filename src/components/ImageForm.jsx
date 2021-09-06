@@ -5,12 +5,13 @@ const ImageForm = (props) => {
 
   const imageForm = images.map((image) => {
 
-    const { isEdit, fileName, extension } = image;
+    const { isEdit, fileName, extension, src } = image;
 
     const editableText = (!isEdit) ? (<div>{`${fileName}.${extension}`}</div>) : (<input type="text" onChange={onChange}/>);
 
     return (
-      <li key={fileName}>
+      <li key={src}>
+        <img src={src} alt={fileName}/>
         <div style={{ display: "flex" }}>
           {editableText}
           <button
@@ -21,7 +22,7 @@ const ImageForm = (props) => {
           </button>
         </div>
       </li>
-    )
+    );
   });
 
   return imageForm;

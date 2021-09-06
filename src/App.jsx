@@ -3,28 +3,33 @@ import _ from 'lodash';
 
 import Upload from './components/Upload';
 import ImageList from './components/ImageList';
+// eslint-disable-next-line
 import useAsync from './apis/useAsync';
-import { rules, createImageByFile, insertImage, findCollection, hasDoc, getDocId } from './apis/index';
-import axios from 'axios';
+import {
+  editImage,
+  insertImage,
+  resData
+} from './apis/index';
+import {
+  REQUESTTYPE_GET as GET,
+  REQUESTTYPE_POST as POST,
+  REQUESTTARGET_COLLECTIONS as COLLECTIONS,
+  REQUESTTARGET_DOCUMENTS as DOCUMENTS,
+  COLLECTION_GENDER as GENDER,
+  COLLECTION_GROUP as GROUP,
+  COLLECTION_MEMBER as MEMBER,
+  COLLECTION_MEMBERIMAGE as MEMBERIMAGE,
+  COLLECTION_MEMBERIMAGERATE as MEMBERIMAGERATE
+} from './Dictionary';
 
 const App = () => {
+  // const [getCollectionsState, getCollections] = useAsync(GET, COLLECTIONS);
+  // let { data: collections } = getCollectionsState;
+  // // eslint-disable-next-line
+  // const [postDocumentsState, postDocuments] = useAsync(POST, DOCUMENTS, true);
 
-  // useAsync = Custom Hook
-  // const [asyncFunctionState, asyncFunction] = useAsync(reqType, url, skip = false, body = {})
-  // asyncFunctionState = { loading, data, error } 반환. 현재 상태나 데이터를 받아볼 수 있음
-  //   .loading = Boolean , 현재 함수 실행 도중이면 true, 끝나면 false
-  //   .data = 요청 결과의 데이터
-  //   .error = 요청 결과의 에러
-  // asyncFunction = 이 함수로 요청을 재실행 가능
-  // reqType = axios 요청 타입, Get || Post
-  // url = 요청의 타겟이 될 collection, 추후 설명
-  // skip = default false, 해당 요청을 useEffect로 실행할지 말지 결정. true시 건너 뜀
-  // body = 요청 시에 같이 보낼 데이터, Get은 body를 담을 수 없음. Post 시 사용.
-  const [getCollectionsState, getCollections] = useAsync('Get', 'collections');
-  let { data: collections } = getCollectionsState;
-  // eslint-disable-next-line
-  const [postDocumentsState, postDocuments] = useAsync('Post', 'documents', true);
-  // const [postImagesState, postImages] = useAsync('Post', 'images', true);
+  const getCollections = async () => await resData(GET, COLLECTIONS);
+  const postDocuments = async (body) => await resData(POST, DOCUMENTS, body);
 
   const [images, setImages] = useState({
     err: {
@@ -33,38 +38,40 @@ const App = () => {
       group: [],
     },
     member: {
+      new: [],
       men: [],
       women: [],
       mixed: [],
     },
     group: {
+      new: [],
       men: [],
       women: [],
       mixed: [],
     },
   });
   const [input, setInput] = useState();
+  const [initialCollection, setInitialCollection] = useState();
 
-  // 파일 임시 업로드
-  const handleFileInput = (e) => {
+  const handleFileInput = async (e) => {
+    const data = !initialCollection ? await getCollections() : _.cloneDeep(initialCollection);
+    if (!initialCollection) { setInitialCollection(data); };
+
     const files = [...e.target.files];
-
     const temp = _.cloneDeep(images);
 
-    files.forEach((file) => {
-      insertImage(temp, createImageByFile(file), rules);
-    });
+    files.forEach((file) => insertImage(temp, editImage(file, data)));
 
     setImages(temp);
   }
 
-  // 임시방편으로 해뒀으나, 각각의 input 별로 자신이 속한 이미지만 바꿔줘야함
   const handleChange = (e) => { setInput(e.target.value); }
 
-  // handleChange의 주석에도 말했듯, 클릭시 다른 버튼을 비활성화 한다거나, 각각 input 별로 자신이 속한 이미지만 바꿔줘야 함.
-  // 추후 분류에 속한 이미지들의 이름을 한번에 바꾼다거나, 선택한 이미지들의 이름을 한번에 바꾸는 기능도 생각중.
+  const handleEditText = async (e) => {
+    // 확장자 제대로 썼는지, . 하나인지 체크
+    const data = !initialCollection ? await getCollections() : _.cloneDeep(initialCollection);
+    if (!initialCollection) { setInitialCollection(data); };
 
-  const handleEditText = (e) => {
     if (!e.isEdit) {
       setInput(e.fileName);
       e.isEdit = !e.isEdit;
@@ -73,215 +80,139 @@ const App = () => {
 
       let temp = {...images};
       temp[largeCategory][mediumCategory] = temp[largeCategory][mediumCategory].filter((image) => image !== e);
+      
+      insertImage(temp, editImage(e, data, input, true));
 
-      insertImage(temp, createImageByFile(e, [input, e.extension]), rules);
       setInput('');
       setImages(temp);
     }
   }
 
-  // const getCol = async (url) => {
-  //   const res = await axios.get(url);
-  //   console.log('get');
-  //   return res.data;
-  // };
-  // const postDoc = async (url, body) => {
-  //   const res = await axios.post(url, body);
-  //   console.log('post');
-  //   return res.data;
-  // };
-
   const handleUploadImages = async () => {
     const temp = _.cloneDeep(images);
     const { err: uploadErr, member: uploadMember, group: uploadGroup } = temp;
 
-    const postAndUpdate = async (upload, update) => {
-      await postDocuments(upload);
-      await getCollections();
-  
-      return findCollection(collections, update);
-    };
-
     // Error
 
-    const hasError = Object.values(uploadErr).reduce((acc, curr) => (acc + curr.length), 0) !== 0;
+    const hasError = (Object.values(uploadErr).reduce((acc, curr) => (acc + curr.length), 0) !== 0) || !initialCollection;
     if (hasError) { console.log('Error Exist'); return; };
+
+    // REQUEST Start!
+
+    let collections = _.cloneDeep(initialCollection);
+    console.log(collections)
+    let { gender: genderCollection, group: groupCollection, member: memberCollection, memberImage: memberImageCollection } = collections;
+
+    const postAndUpdate = async (uploadData, update) => {
+      await postDocuments(uploadData);
+      collections = await getCollections();
+
+      return collections[update];
+    }
+
+    const newGenders = new Set();
+    const newGroups = uploadGroup.new.reduce((acc, image) => {
+      const { isNewGender, gender, isNewGroup, group } = image;
+
+      if (isNewGender) { newGenders.add(gender); };
+      if (isNewGroup) { acc.add(`${gender}/${group}`); };
+
+      return acc;
+    }, new Set());
+    const newMembers = uploadMember.new.reduce((acc, image) => {
+      const { isNewGender, gender, isNewGroup, group, isNewMember, member } = image;
+
+      if (isNewGender) { newGenders.add(gender); };
+      if (isNewGroup) { newGroups.add(`${gender}/${group}`); };
+      if (isNewMember) { acc.add(`${gender}/${group}/${member}`); };
+
+      return acc;
+    }, new Set());
 
     // gender
 
-    let genderCollection = findCollection(collections, 'gender');
-    if (genderCollection.length !== 3) {
-      let newGenders = ["gender", []];
+    if (genderCollection.legnth !== 3 && newGenders.size !== 0) {
+      let targetGenders = [GENDER, []];
+      [...newGenders].forEach(name => targetGenders[1].push({ name }));
 
-      const { men: memberMen, women: memberWomen , mixed: memberMixed } = uploadMember;
-      const { men: groupMen, women: groupWomen, mixed: groupMixed } = uploadGroup;
+      genderCollection = await postAndUpdate(targetGenders, GENDER);
+    }
 
-      if ((memberMen.length + groupMen.length) !== 0 && !hasDoc(genderCollection, ['men'])) newGenders[1].push({ name: 'men' });
-      if ((memberWomen.length + groupWomen.length) !== 0 && !hasDoc(genderCollection, ['women'])) newGenders[1].push({ name: 'women' });
-      if ((memberMixed.length + groupMixed.length) !== 0 && !hasDoc(genderCollection, ['mixed'])) newGenders[1].push({ name: 'mixed' });
-
-      if (newGenders[1].length !== 0) genderCollection = await postAndUpdate(newGenders, 'gender');
-    };
+    let genderIds = {};
+    genderCollection.forEach(({ name, _id }) => genderIds[name] = _id);
 
     // group
 
-    const menId = getDocId(genderCollection, ['men']);
-    const womenId = getDocId(genderCollection, ['women']);
-    const mixedId = getDocId(genderCollection, ['mixed']);
-    
-    let groupCollection = findCollection(collections, 'group');
+    if (newGroups.size !== 0) {
+      let targetGroups = [GROUP, []];
+      [...newGroups].forEach((doc) => {
+        const [gender, name] = doc.split('/');
 
-    let menGroupSet = new Set([]);
-    let womenGroupSet = new Set([]);
-    let mixedGroupSet = new Set([]);
-
-    const gatherGroups = (upload) => {
-      Object.entries(upload).forEach(([key, value]) => {
-        if (value.length !== 0) {
-          value.forEach((file) => {
-            const group = file.group;
-
-            switch (key) {
-              case 'men' : menGroupSet.add(group); break;
-              case 'women' : womenGroupSet.add(group); break;
-              default : mixedGroupSet.add(group);
-            };
-          });
-        };
+        targetGroups[1].push({ genderId: genderIds[gender], name });
       });
+
+      groupCollection = await postAndUpdate(targetGroups, GROUP);
     };
-    gatherGroups(uploadMember);
-    gatherGroups(uploadGroup);
 
-    if ((menGroupSet.size + womenGroupSet.size + mixedGroupSet.size) !== 0) {
-      let newGroups = ["group", []];
-
-      const collectGroups = (targetGroupSet, genderId) => {
-        if (targetGroupSet.size !== 0) {
-          [...targetGroupSet].forEach((group) => {
-            if (!hasDoc(groupCollection, [group, genderId])) {
-              newGroups[1].push({
-                genderId,
-                name: group,
-              });
-            };
-          });
-        };
-      };
-      collectGroups(menGroupSet, menId);
-      collectGroups(womenGroupSet, womenId);
-      collectGroups(mixedGroupSet, mixedId);
-
-      if (newGroups[1].length !== 0) groupCollection = await postAndUpdate(newGroups, 'group');
-    };
+    let groupIds = {};
+    groupCollection.forEach(({ name, genderId, _id }) => {
+      groupIds[name] = groupIds[name] || {};
+      groupIds[name][genderId] = _id;
+    });
 
     // member
 
-    let memberCollection = findCollection(collections, 'member');
+    if (newMembers.size !== 0) {
+      let targetMembers = [MEMBER, []];
+      [...newMembers].forEach((doc) => {
+        const [gender, group, name] = doc.split('/');
 
-    let menGroupIds = {};
-    let womenGroupIds = {};
-    let mixedGroupIds = {};
+        const genderId = genderIds[gender];
+        const groupId = groupIds[group][genderId];
 
-    const collectGenderAndGroupIds = (targetGroupSet, targetGroupIds, genderId) => {
-      [...targetGroupSet].forEach((group) => {
-        const groupId = getDocId(groupCollection, [group, genderId]);
-
-        targetGroupIds[group] = {
-          genderId,
-          groupId,
-        };
+        targetMembers[1].push({ genderId, groupId, name });
       });
+
+      memberCollection = await postAndUpdate(targetMembers, MEMBER);
     };
-    collectGenderAndGroupIds(menGroupSet, menGroupIds, menId);
-    collectGenderAndGroupIds(womenGroupSet, womenGroupIds, womenId);
-    collectGenderAndGroupIds(mixedGroupSet, mixedGroupIds, mixedId);
 
-    const isUploadMember = Object.values(uploadMember).reduce((acc, curr) => (acc + curr.length), 0) !== 0;
-    if (isUploadMember) {
-      let newMembers = ["member", []];
-
-      Object.entries(uploadMember).forEach(([key, value]) => {
-        const collectMembers = (groupIds) => {
-          let tempIds = {...groupIds};
-          Object.values(tempIds).forEach((group) => group.newMemberSet = new Set([]));
-
-          value.forEach((file) => {
-            const { group, member } = file;
-            const { genderId, groupId } = tempIds[group];
-
-            if (!hasDoc(memberCollection, [member, genderId, groupId])) {
-              tempIds[group].newMemberSet.add(member);
-            };
-          });
-
-          Object.values(tempIds).forEach((group) => {
-            const { newMemberSet, ...ids  } = group;
-
-            if (newMemberSet.size !== 0) {
-              [...newMemberSet].forEach((newMember) => {
-                newMembers[1].push({ ...ids, name: newMember });
-              });
-            };
-          });
-        };
-
-        switch (key) {
-          case 'men' : collectMembers(menGroupIds); break;
-          case 'women' : collectMembers(womenGroupIds); break;
-          default : collectMembers(mixedGroupIds);
-        };
-      });
-
-      if (newMembers[1].length !== 0) memberCollection = await postAndUpdate(newMembers, 'member');
-    }
+    let memberIds = {};
+    memberCollection.forEach(({ name, genderId, groupId, _id }) => {
+      memberIds[name] = memberIds[name] || {};
+      memberIds[name][genderId] = memberIds[name][genderId] || {};
+      memberIds[name][genderId][groupId] = _id;
+    });
 
     // memberImage
-    // AWS S3에 이미지 업로드 후 URL 회수
 
-    const uploadTest = true;
-    if (uploadTest) {
-      let newMemberImages = ['memberImage', []];
+    if (Object.values(uploadMember).some(e => e.length > 0)) {
+      let targetMemberImages = [MEMBERIMAGE, []];
+      Object.values(uploadMember).forEach(c => c.forEach(({ member, gender, group, name }) => {
+        const genderId = genderIds[gender];
+        const groupId = groupIds[group][genderId];
+        const memberId = memberIds[member][genderId][groupId];
 
-      Object.entries(uploadMember).forEach(([key, value]) => {
-        const collectImages = (groupIds) => {
-          value.forEach((file) => {
-            const { group, member, fileName: name } = file;
-            const { genderId, groupId } = groupIds[group];
-  
-            const memberId = getDocId(memberCollection, [member, genderId, groupId]);
+        const isExist = memberImageCollection.some(image => image.name === name);
 
-            newMemberImages[1].push({
-              memberId,
-              imageUrl: `${name}/${file.extension}`,
-              name,
-            });
-          });
-        };
+        if (!isExist) { targetMemberImages[1].push({ memberId, imageUrl: name, name }); }
+      }));
 
-        switch (key) {
-          case 'men' : collectImages(menGroupIds); break;
-          case 'women' : collectImages(womenGroupIds); break;
-          default: collectImages(mixedGroupIds);
-        };
-      });
+      if (targetMemberImages[1].length > 0) {
+        memberImageCollection = await postAndUpdate(targetMemberImages, MEMBERIMAGE);
 
-      let memberImageCollection = await postAndUpdate(newMemberImages, 'memberImage');
-      // const newMemberImageRates = newMemberImages[1].map((image) => {
-      //   const { name, memberId, imageUrl } = image;
+        // memberImageRate
 
-      //   const memberImageId = getDocId(memberImageCollection, [name, memberId, imageUrl]);
+        let targetMemberImageRates = [MEMBERIMAGERATE, []];
+        targetMemberImages[1].forEach(({ memberId, imageUrl, name }) => targetMemberImageRates[1].push({
+          memberImageId: memberImageCollection[memberImageCollection.findIndex(doc => doc.name === name && doc.imageUrl === imageUrl && doc.memberId === memberId)]._id,
+          first: 0, entry: 0, win: 0, lose: 0
+        }));
 
-      //   return {
-      //     memberImageId,
-      //     first: 0,
-      //     entry: 0,
-      //     win: 0,
-      //     lose: 0,
-      //   };
-      // });
-
+        await postDocuments(targetMemberImageRates);
+      };
     };
+
+    console.log(await getCollections());
   };
 
   return (

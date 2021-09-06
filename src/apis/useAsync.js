@@ -1,23 +1,28 @@
 import axios from 'axios';
 import { useReducer, useEffect } from 'react';
 
-const API_URL = 'http://localhost:5000/api/ideals'
+import {
+  API_URL,
+  ACTIONTYPE_LOADING as LOADING,
+  ACTIONTYPE_SUCCESS as SUCCESS,
+  ACTIONTYPE_ERROR as ERROR,
+} from '../Dictionary';
 
 const reducer = (state, action) => {
   switch (action.type) {
-    // case 'LOADING':
-    //   return {
-    //     loading: true,
-    //     data: null,
-    //     error: null
-    //   };
-    case 'SUCCESS':
+    case LOADING:
+      return {
+        loading: true,
+        data: null,
+        error: null
+      };
+    case SUCCESS:
       return {
         loading: false,
         data: action.data,
         error: null
       };
-    case 'ERROR':
+    case ERROR:
       return {
         loading: false,
         data: null,
@@ -25,24 +30,13 @@ const reducer = (state, action) => {
       };
     default:
       throw new Error(`Unhandled action type: ${action.type}`);
-  }
-}
+  };
+};
 
 const resData = async (reqType, url, body) => {
-  let res;
-  const reqUrl = `${API_URL}/${url}`
-  switch (reqType) {
-    case 'Get':
-      res = await axios.get(reqUrl);
-      console.log('get');
-      return res.data;
-    case 'Post':
-      res = await axios.post(reqUrl, body);
-      console.log('post');
-      return res.data;
-    default: throw new Error(`Unhandled request type: ${reqType}`);
-  }
-}
+  const res = await axios[reqType](`${API_URL}/${url}`, body);
+  return res.data;
+};
 
 const useAsync = (reqType, url, skip = false, body = {}, deps = []) => {
   const [state, dispatch] = useReducer(reducer, {
@@ -52,20 +46,18 @@ const useAsync = (reqType, url, skip = false, body = {}, deps = []) => {
   });
 
   const fetchData = async (body = {}) => {
-    // dispatch({ type: 'LOADING' });
+    dispatch({ type: LOADING });
     try {
       const data = await resData(reqType, url, body);
-      console.log(data);
-      dispatch({ type: 'SUCCESS', data });
+      dispatch({ type: SUCCESS, data });
     } catch (e) {
-      dispatch({ type: 'ERROR', error: e });
-    }
+      dispatch({ type: ERROR, error: e });
+    };
   };
 
   useEffect(() => {
     if (skip) return;
     fetchData(body);
-    // eslint 설정을 다음 줄에서만 비활성화
     // eslint-disable-next-line
   }, deps);
 

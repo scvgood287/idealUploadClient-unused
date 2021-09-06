@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 
-import ImageForm from './ImageForm';
+import ImageForm from '../ImageForm';
 
 const MemberCategory = (props) => {
   const { images, onChange, onClick } = props;

@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 
-import LargeCategory from './LargeCategory';
+import LargeCategory from './Categorized/LargeCategory';
 
 const ImageList = (props) => {
   const { images, onChange, onClick } = props;

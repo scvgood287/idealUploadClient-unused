@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
 
 import MemberCategory from './MemberCategory';
-import ImageForm from './ImageForm';
+import ImageForm from '../ImageForm';
+import { UPLOADTYPE_MEMBER as MEMBER } from '../../Dictionary';
 
 const SmallCategory = (props) => {
   const { largeCategory, images, onChange, onClick} = props;
@@ -13,7 +14,7 @@ const SmallCategory = (props) => {
 
     const targetImages = images.filter((image) => image.group === group);
 
-    const data = (largeCategory === 'member') ? (
+    const data = (MEMBER === largeCategory) ? (
       <MemberCategory
         images={targetImages}
         onChange={onChange}
