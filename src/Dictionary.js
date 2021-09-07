@@ -1,4 +1,8 @@
+// ".", "_" 만 사용가능
+const CANNOT_USE_THIS = [".", "~", "₩", "`", "!", "@", "#", "%", "^", "&", "*", "(", ")", "+", "=", "{", "[", "}", "]", "|", ":", ";", "'", '"', "<", ">", ",", "?", "/"];
+
 // GENDER
+// men -> boy, women -> girl 로 바꿔야함
 const GENDER_BOY = "men";
 const GENDER_GIRL = "women";
 const GENDER_MIXED = "mixed";
@@ -14,7 +18,13 @@ const UPLOADTYPE_GROUP = "group";
 const ERRTYPE_LABELING = "labeling";
 
 // API_URL
-const API_URL = "http://localhost:5000/api/ideals";
+const API_URL = "http://localhost:8000/api/ideals";
+const ACCESS_ID = "AKIARWY3ZOJ6GHLHZMJI";
+const ACCESS_KEY = "JtoJhmGh5CXN9VYGh/QXgpOpG1p4qL1LRrYFwTHl";
+const BUCKET_NAME = "ideals-bucket";
+const DIR_NAME = "idealimages";
+const REGION = "ap-northeast-2";
+const IDENTITYPOOLID = "IdentityPoolId:ap-northeast-2:ca1cfcae-8b4e-439c-9f1b-a421944d0712";
 
 //ACTIONTYPE
 const ACTIONTYPE_LOADING = "LOADING";
@@ -41,6 +51,8 @@ const COLLECTION_MEMBERIMAGERATE = "memberImageRate";
 const COLLECTION_MEMBERIMAGEGAMELOG = "memberImageGameLog";
 
 export {
+  CANNOT_USE_THIS,
+
   GENDER_BOY,
   GENDER_GIRL,
   GENDER_MIXED,
@@ -54,6 +66,12 @@ export {
   ERRTYPE_LABELING,
 
   API_URL,
+  ACCESS_ID,
+  ACCESS_KEY,
+  BUCKET_NAME,
+  DIR_NAME,
+  REGION,
+  IDENTITYPOOLID,
 
   ACTIONTYPE_LOADING,
   ACTIONTYPE_SUCCESS,
