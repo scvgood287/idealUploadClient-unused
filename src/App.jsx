@@ -18,6 +18,7 @@ import {
   REQUESTTYPE_POST as POST,
   REQUESTTARGET_COLLECTIONS as COLLECTIONS,
   REQUESTTARGET_DOCUMENTS as DOCUMENTS,
+  NEW,
   COLLECTION_GENDER as GENDER,
   COLLECTION_GROUP as GROUP,
   COLLECTION_GROUPIMAGE as GROUPIMAGE,
@@ -58,6 +59,7 @@ const App = () => {
     try {
       const data = initialCollection || await getCollections();
       if (!initialCollection) { setInitialCollection(data); };
+      console.log(data);
 
       const files = [...e.target.files];
       const temp = _.cloneDeep(images);
@@ -157,56 +159,64 @@ const App = () => {
         return collections[update];
       }
 
+      let genders = new Set();
       let groups = new Set();
       let members = new Set();
 
       let newGenders = new Set();
-      let newGroups = uploadGroup.new.reduce((acc, image) => {
-        const { gender, group, isNewGender, isNewGroup } = image;
-
+      let newGroups = Object.entries(uploadGroup).forEach(([key, value]) => value.reduce((acc, { gender, group, isNewGender, isNewGroup }) => {
+        genders.add(gender);
         groups.add(`${gender}/${group}`);
-
-        if (isNewGender) { newGenders.add(gender); };
-        if (isNewGroup) { acc.add(`${gender}/${group}`); };
-
+        
+        if (key === NEW) {
+          if (isNewGender) { newGenders.add(gender); };
+          if (isNewGroup) { acc.add(`${gender}/${group}`); };
+        };
+        
         return acc;
-      }, new Set());
-      let newMembers = uploadMember.new.reduce((acc, image) => {
-        const { gender, group, member, isNewGender, isNewGroup, isNewMember } = image;
-
+      }, new Set()));
+      let newMembers = Object.entries(uploadMember).forEach(([key, value]) => value.reduce((acc, { gender, group, member, isNewGender, isNewGroup, isNewMember }) => {
+        genders.add(gender);
         groups.add(`${gender}/${group}`);
         members.add(`${gender}/${group}/${member}`);
-
-        if (isNewGender) { newGenders.add(gender); };
-        if (isNewGroup) { newGroups.add(`${gender}/${group}`); };
-        if (isNewMember) { acc.add(`${gender}/${group}/${member}`); };
-
+        
+        if (key === NEW) {
+          if (isNewGender) { newGenders.add(gender); };
+          if (isNewGroup) { newGroups.add(`${gender}/${group}`); };
+          if (isNewMember) { acc.add(`${gender}/${group}/${member}`); };
+        };
+        
         return acc;
-      }, new Set());
+      }, new Set()));
 
-      [groups, members, newGroups, newMembers] = [groups, members, newGroups, newMembers].map(set => [...set].map(e => e.split('/')));
+      [genders, groups, members, newGenders, newGroups, newMembers] = [genders, groups, members, newGenders, newGroups, newMembers].map((set = []) => [...set].map(e => e.split('/')));
 
       // gender
 
-      if (newGenders.size !== 0) {
+      if (newGenders.length !== 0) {
+        console.log("gender upload start");
         let targetGenders = [GENDER, []];
-        [...newGenders].forEach(name => targetGenders[1].push({ name }));
+        newGenders.forEach(name => targetGenders[1].push({ name }));
 
         genderCollection = await postAndUpdate(targetGenders, GENDER);
-        console.log(genderCollection);
+        console.log("gender upload done");
       };
 
-      let genderIds = {};
-      genderCollection.forEach(({ name, _id }) => genderIds[name] = _id);
+      const genderIds = genders.reduce((acc, [gender]) => {
+        acc[gender] = genderCollection[genderCollection.findIndex(({ name }) => name === gender)]._id;
+        
+        return acc;
+      }, {});
 
       // group
 
       if (newGroups.length !== 0) {
+        console.log("group upload start");
         let targetGroups = [GROUP, []];
         newGroups.forEach(([gender, name]) => targetGroups[1].push({ genderId: genderIds[gender], name }));
 
         groupCollection = await postAndUpdate(targetGroups, GROUP);
-        console.log(groupCollection);
+        console.log("group upload done");
       };
 
       const groupIds = groups.reduce((acc, [gender, group]) => {
@@ -222,12 +232,13 @@ const App = () => {
       // groupImage
 
       if (Object.values(uploadGroup).some(e => e.length > 0)) {
+        console.log("groupImage upload start");
         let targetGroupImages = [GROUPIMAGE, []];
         Object.values(uploadGroup).forEach(c => c.forEach((file) => {
-          const { gender, group, extension, type } = file;
+          const { gender, group, type } = file;
 
-          const nameId = uuid();
-          const name = `${nameId}.${extension}`;
+          const nameId = uuid().replaceAll("-", "");
+          const name = `images/groupImages/${gender}/${group}/${nameId}.${type.split("/")[1]}`;
           const imageUrl = `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${name}`;
 
           uploadToS3(file, name, type);
@@ -239,10 +250,11 @@ const App = () => {
         }));
 
         groupImageCollection = await postAndUpdate(targetGroupImages, GROUPIMAGE);
-        console.log(groupImageCollection);
+        console.log("groupImage upload done");
 
         // groupImageRate
 
+        console.log("groupImageRate upload start");
         let targetGroupImageRates = [GROUPIMAGERATE, []];
         targetGroupImages[1].forEach(({ groupId, imageUrl, name }) => {
           const groupImageId = groupImageCollection[groupImageCollection.findIndex(({ name: existedName, imageUrl: existedImageUrl, groupId: existedGroupId }) => (
@@ -261,11 +273,13 @@ const App = () => {
         });
 
         await postDocuments(targetGroupImageRates);
+        console.log("groupImageRate upload done");
       };
 
       // member
 
       if (newMembers.length !== 0) {
+        console.log("member upload start");
         let targetMembers = [MEMBER, []];
         newMembers.forEach(([gender, group, name]) => {
           const genderId = genderIds[gender];
@@ -275,7 +289,7 @@ const App = () => {
         });
 
         memberCollection = await postAndUpdate(targetMembers, MEMBER);
-        console.log(memberCollection);
+        console.log("member upload done");
       };
 
       const memberIds = members.reduce((acc, [gender, group, member]) => {
@@ -293,12 +307,13 @@ const App = () => {
       // memberImage
 
       if (Object.values(uploadMember).some(e => e.length > 0)) {
+        console.log("memberImage upload start");
         let targetMemberImages = [MEMBERIMAGE, []];
         Object.values(uploadMember).forEach(c => c.forEach((file) => {
-          const { member, gender, group, extension, type } = file;
+          const { gender, group, member, type } = file;
 
-          const nameId = uuid();
-          const name = `${nameId}.${extension}`;
+          const nameId = uuid().replaceAll("-", "");
+          const name = `images/memberImages/${gender}/${group}/${member}/${nameId}.${type.split("/")[1]}`;
           const imageUrl = `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${name}`;
 
           uploadToS3(file, name, type);
@@ -311,10 +326,11 @@ const App = () => {
         }));
 
         memberImageCollection = await postAndUpdate(targetMemberImages, MEMBERIMAGE);
-        console.log(memberImageCollection);
+        console.log("memberImage upload done");
 
         // memberImageRate
 
+        console.log("memberImageRate upload start");
         let targetMemberImageRates = [MEMBERIMAGERATE, []];
         targetMemberImages[1].forEach(({ memberId, imageUrl, name }) => {
           const memberImageId = memberImageCollection[memberImageCollection.findIndex(({ name: existedName, imageUrl: existedImageUrl, memberId: existedMemberId }) => (
@@ -333,6 +349,7 @@ const App = () => {
         });
 
         await postDocuments(targetMemberImageRates);
+        console.log("memberImageRate upload done");
       };
 
       console.log('done!');
