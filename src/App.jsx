@@ -164,30 +164,34 @@ const App = () => {
       let members = new Set();
 
       let newGenders = new Set();
-      let newGroups = Object.entries(uploadGroup).forEach(([key, value]) => value.reduce((acc, { gender, group, isNewGender, isNewGroup }) => {
-        genders.add(gender);
-        groups.add(`${gender}/${group}`);
-        
-        if (key === NEW) {
-          if (isNewGender) { newGenders.add(gender); };
-          if (isNewGroup) { acc.add(`${gender}/${group}`); };
-        };
-        
+      let newGroups = Object.entries(uploadGroup).reduce((acc, [key, value]) => {
+        value.forEach(({ gender, group, isNewGender, isNewGroup }) => {
+          genders.add(gender);
+          groups.add(`${gender}/${group}`);
+
+          if (key === NEW) {
+            if (isNewGender) { newGenders.add(gender); };
+            if (isNewGroup) { acc.add(`${gender}/${group}`); };
+          };
+        });
+
         return acc;
-      }, new Set()));
-      let newMembers = Object.entries(uploadMember).forEach(([key, value]) => value.reduce((acc, { gender, group, member, isNewGender, isNewGroup, isNewMember }) => {
-        genders.add(gender);
-        groups.add(`${gender}/${group}`);
-        members.add(`${gender}/${group}/${member}`);
-        
-        if (key === NEW) {
-          if (isNewGender) { newGenders.add(gender); };
-          if (isNewGroup) { newGroups.add(`${gender}/${group}`); };
-          if (isNewMember) { acc.add(`${gender}/${group}/${member}`); };
-        };
-        
+      }, new Set());
+      let newMembers = Object.entries(uploadMember).reduce((acc, [key, value]) => {
+        value.forEach(({ gender, group, member, isNewGender, isNewGroup, isNewMember }) => {
+          genders.add(gender);
+          groups.add(`${gender}/${group}`);
+          members.add(`${gender}/${group}/${member}`);
+
+          if (key === NEW) {
+            if (isNewGender) { newGenders.add(gender); };
+            if (isNewGroup) { newGroups.add(`${gender}/${group}`); };
+            if (isNewMember) { acc.add(`${gender}/${group}/${member}`); };
+          };
+        });
+
         return acc;
-      }, new Set()));
+      }, new Set());
 
       [genders, groups, members, newGenders, newGroups, newMembers] = [genders, groups, members, newGenders, newGroups, newMembers].map((set = []) => [...set].map(e => e.split('/')));
 
@@ -196,7 +200,7 @@ const App = () => {
       if (newGenders.length !== 0) {
         console.log("gender upload start");
         let targetGenders = [GENDER, []];
-        newGenders.forEach(name => targetGenders[1].push({ name }));
+        newGenders.forEach(([name]) => targetGenders[1].push({ name }));
 
         genderCollection = await postAndUpdate(targetGenders, GENDER);
         console.log("gender upload done");
@@ -356,6 +360,9 @@ const App = () => {
       setIsUploadEnd(true);
     } catch (error) { console.error(error); };
   };
+
+  const test = async () => {
+  }
 
   return !initialCollection ? (
     <>

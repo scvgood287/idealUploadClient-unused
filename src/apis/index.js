@@ -128,20 +128,20 @@ const isUnusableName = (name, images) => (
   Object.values(images).some(c => Object.values(c).some(imageList => imageList.some(image => image.editableName === name)))
 );
 
-const s3 = new AWS.S3({
-  accessKeyId: ACCESS_ID,
-  secretAccessKey: ACCESS_KEY,
-  region: REGION,
-});
-
 const uploadToS3 = (Body, Key, ContentType) => {
+  const s3 = new AWS.S3({
+    accessKeyId: ACCESS_ID,
+    secretAccessKey: ACCESS_KEY,
+    region: REGION,
+  });
+
   s3.putObject({
     Bucket: BUCKET_NAME,
     Body,
     Key,
     ContentType,
     ACL: "public-read",
-  });
+  }, () => console.log("s3 upload done"));
 };
 
 export {
