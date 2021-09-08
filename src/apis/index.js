@@ -35,7 +35,7 @@ const editImage = (file, { gender: genderCollection, group: groupCollection, mem
   file.editableName = file.editableName.toLowerCase();
   file.isEditable = false;
   file.src = skip ? file.src : URL.createObjectURL(file);
-  [file.uploadType, file.gender, file.group, file.member, file.index] = file.editableName.replaceAll(" ", "").split("_");
+  [file.uploadType, file.gender, file.group, file.member, file.index] = file.editableName.split("_");
 
   const { uploadTypes, genders } = rules;
   const { uploadType, gender, group, member } = file;
