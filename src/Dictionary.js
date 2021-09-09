@@ -2,8 +2,8 @@
 const CANNOT_USE_THIS = [".", " ", "~", "₩", "`", "!", "@", "#", "%", "^", "&", "*", "(", ")", "+", "=", "{", "[", "}", "]", "|", ":", ";", "'", '"', "<", ">", ",", "?", "/"];
 
 // GENDER
-const GENDER_BOY = "boy";
-const GENDER_GIRL = "girl";
+const GENDER_BOY = "men";
+const GENDER_GIRL = "women";
 const GENDER_MIXED = "mixed";
 
 const NEW = "new";

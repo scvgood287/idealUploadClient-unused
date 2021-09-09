@@ -52,33 +52,48 @@ const App = () => {
     },
   });
   const [input, setInput] = useState();
+
+  // !initialCollection ? 아직 Get 요청을 보내지 않았으므로, 최초 임시 업로드 버튼만 활성화(최초 임시 업로드 시 Get 요청)
+	// : 업로드를 위한 조작 화면
   const [initialCollection, setInitialCollection] = useState();
+	
+  // isUploadEnd ? 조작 불가능하도록 아무것도 렌더링하지 않음 : 업로드를 위한 조작 화면
   const [isUploadEnd, setIsUploadEnd] = useState(false);
   
-  const handleFileInput = async (e) => {
+	// App.jsx/handleUpdateImages
+  const handleUpdateImages = async (e) => {
     try {
+      // !initialCollection ? 아직 Get 요청 한 적 없으니 요청 후 setInitialCollection : 그대로 사용
       const data = initialCollection || await getCollections();
       if (!initialCollection) { setInitialCollection(data); };
       console.log(data);
-
+  
       const files = [...e.target.files];
       const temp = _.cloneDeep(images);
-
+  
+      // !needToInsertImage ?
+      // files forEach 루프 도중, 다른 불필요한 작업을 중단. 임시 업로드 요청 거부
+      // : files forEach 정상 순회 및 setImages
+      // wrongImages 에는 업로드한 파일들 중, 사용 불가능한 파일명들이 추가된다.
       let needToInsertImage = true;
       let wrongImages = new Set();
-
+  
       files.forEach((file) => {
+        // 사용자가 임시 업로드 한 직후의 파일이라 파일명만 따로 따올 수 없음.
+        // validName 으로 파일명만 slice 한 후, toLowerCase 로 비교 가능하게 만듬.
         const name = file.name;
         const validName = name.slice(0, name.lastIndexOf(".")).toLowerCase();
-
+  
+        // 사용 불가능한 파일명이거나, 같이 업로드한 파일 중 겹치는 파일명이 있다면 ?
+        // wrongImages 에 name 추가, needToInsertImage 를 false 로 한다.
+        // : needToInsertImage ? editAndInsertImage : do Nothing
         if (isUnusableName(validName, images) || files.filter(({ name: tempName }) => tempName.slice(0, tempName.lastIndexOf(".")).toLowerCase() === validName ).length > 1) {
           wrongImages.add(name);
           needToInsertImage = false;
-        };
-
-        if (needToInsertImage) { insertImage(temp, editImage(file, data)); };
+        } else if (needToInsertImage) { insertImage(temp, editImage(file, data)); };
       });
-
+  
+      // 임시 업로드 거부 및 throw new Error
       if (!needToInsertImage) {
         throw new Error(
           `아래 중 하나 이상의 이유로 업로드 요청이 거부됩니다.\n
@@ -94,15 +109,21 @@ const App = () => {
           해당하는 파일명 목록 : ${[...wrongImages].map((fileName, i) => `\n\t${i + 1}. ${fileName}`)}`
         );
       };
-
+  
+      console.log(temp);
       setImages(temp);
     } catch (error) { console.error(error); };
   };
 
-  const handleChange = (e) => { setInput(e.target.value); };
+  // 임시로 간단히 구현한 것뿐이라 여러 예외처리는 아직 안 되어 있음. 여러 상황에 따른 구현이 추가적으로 필요
+	const handleChange = (e) => { setInput(e.target.value); };
 
-  const handleEditText = (e) => {
+	// App.jsx/handleEditFileName
+	const handleEditFileName = (e) => {
     try {
+      // !e.isEditable ? 수정 가능하게 한 뒤, input 기본 값은 해당 파일의 파일명
+      // : 입력한 파일명이 사용 불가능한 파일명이라면 ? 수정 거부 및 throw new Error, handleEditFileName End
+      // : images 에서 해당 파일을 지운 뒤, editAndInsert 로 올바른 위치에 재분류 후 setImages
       if (!e.isEditable) {
         e.isEditable = !e.isEditable;
         setInput(e.editableName);
@@ -126,7 +147,7 @@ const App = () => {
         let temp = _.cloneDeep(images);
         temp[largeCategory][mediumCategory] = images[largeCategory][mediumCategory].filter(image => image !== e);
         
-        insertImage(temp, editImage(e, initialCollection, [input, e.extension], true));
+        insertImage(temp, editImage(e, initialCollection, [input, e.extension]));
   
         setInput('');
         setImages(temp);
@@ -134,20 +155,26 @@ const App = () => {
     } catch (error) { console.error(error); };
   };
 
-  const handleUploadImages = async () => {
+	// App.jsx/handleUploadFiles
+	const handleUploadFiles = async () => {
     try {
       const temp = _.cloneDeep(images);
       const { err: uploadErr, member: uploadMember, group: uploadGroup } = temp;
 
       // Error
 
+      // images[err] 에 파일이 하나라도 있으면 throw new Error, handleUploadFiles End
       if ((Object.values(uploadErr).reduce((acc, curr) => (acc + curr.length), 0) !== 0)) { throw new Error(('아직 수정하지 않은 ERROR 파일이 존재합니다.')) };
 
       // REQUEST Start!
 
+      
       let collections = _.cloneDeep(initialCollection);
       let { gender: genderCollection, group: groupCollection, groupImage: groupImageCollection, member: memberCollection, memberImage: memberImageCollection } = collections;
 
+      // uploadData 는 Post 요청 시 같이 보낼 body, update 는 collection 의 이름
+      // Post 요청 이후, Post 요청이 적용된 db 를 다시 불러와 collections 를 업데이트,
+      // Post 요청으로 업데이트된 collection 을 반환한다.
       const postAndUpdate = async (uploadData, update) => {
         await postDocuments(uploadData);
         collections = await getCollections();
@@ -155,10 +182,12 @@ const App = () => {
         return collections[update];
       }
 
+      // 임시 업로드한 모든 성별, 그룹, 멤버 목록
       let genders = new Set();
       let groups = new Set();
       let members = new Set();
 
+      // 임시 업로드한 파일들 중 db 에 없는 새로운 성별, 그룹, 멤버 목록
       let newGenders = new Set();
       let newGroups = Object.entries(uploadGroup).reduce((acc, [key, value]) => {
         value.forEach(({ gender, group, isNewGender, isNewGroup }) => {
@@ -189,10 +218,12 @@ const App = () => {
         return acc;
       }, new Set());
 
+		  // 이후 반복문을 사용할 수 있게 Set 형태의 목록을 Array 형태로 변환
       [genders, groups, members, newGenders, newGroups, newMembers] = [genders, groups, members, newGenders, newGroups, newMembers].map((set = []) => [...set].map(e => e.split('/')));
 
       // gender
 
+		  // 새로운 성별이 있을때만 postAndUpdate
       if (newGenders.length !== 0) {
         console.log("gender upload start");
         let targetGenders = [GENDER, []];
@@ -202,6 +233,8 @@ const App = () => {
         console.log("gender upload done");
       };
 
+		  // 업데이트된 genderCollection 중 임시 업로드 한 성별에 한해 id 들을 모아둔다.
+      // genderIds[성별] = 해당 성별의 id
       const genderIds = genders.reduce((acc, [gender]) => {
         acc[gender] = genderCollection[genderCollection.findIndex(({ name }) => name === gender)]._id;
         
@@ -210,6 +243,7 @@ const App = () => {
 
       // group
 
+      // 새로운 그룹이 있을때만 postAndUpdate
       if (newGroups.length !== 0) {
         console.log("group upload start");
         let targetGroups = [GROUP, []];
@@ -219,6 +253,8 @@ const App = () => {
         console.log("group upload done");
       };
 
+      // 업데이트된 groupCollection 중 임시 업로드 한 그룹에 한해 id 들을 모아둔다.
+		  // groupIds[그룹이름][성별id] = 해당 그룹의 id / 같은 이름의 그룹, 다른 성별 가능성
       const groupIds = groups.reduce((acc, [gender, group]) => {
         const genderId = genderIds[gender];
         const groupId = groupCollection[groupCollection.findIndex(({ name, genderId: existedGenderId }) => name === group && existedGenderId === genderId)]._id;
@@ -231,6 +267,7 @@ const App = () => {
 
       // groupImage
 
+      // 임시 업로드한 이미지들 중 업로드 타입이 group 인 이미지가 하나라도 있으면 이미지를 AWS S3 업로드 및 postAndUpdate
       if (Object.values(uploadGroup).some(e => e.length > 0)) {
         console.log("groupImage upload start");
         let targetGroupImages = [GROUPIMAGE, []];
@@ -254,6 +291,8 @@ const App = () => {
 
         // groupImageRate
 
+        // 임시 업로드한 이미지들 중 업로드 타입이 group 인 이미지들에 한해
+        // 업데이트된 groupCollection 중 groupImageId 를 찾아 postAndUpdate
         console.log("groupImageRate upload start");
         let targetGroupImageRates = [GROUPIMAGERATE, []];
         targetGroupImages[1].forEach(({ groupId, imageUrl, name }) => {
@@ -278,6 +317,7 @@ const App = () => {
 
       // member
 
+		  // 새로운 멤버가 있다면 postAndUpdate
       if (newMembers.length !== 0) {
         console.log("member upload start");
         let targetMembers = [MEMBER, []];
@@ -292,6 +332,8 @@ const App = () => {
         console.log("member upload done");
       };
 
+      // 업데이트된 memberCollection 중 임시 업로드 한 그룹에 한해 id 들을 모아둔다.
+		  // memberIds[멤버이름][그룹id][성별id] = 해당 멤버의 id / 동명이인의 가능성
       const memberIds = members.reduce((acc, [gender, group, member]) => {
         const genderId = genderIds[gender];
         const groupId = groupIds[group][genderId];
@@ -306,6 +348,7 @@ const App = () => {
 
       // memberImage
 
+      // 임시 업로드한 이미지들 중 업로드 타입이 member 인 이미지가 하나라도 있으면 이미지를 AWS S3 업로드 및 postAndUpdate
       if (Object.values(uploadMember).some(e => e.length > 0)) {
         console.log("memberImage upload start");
         let targetMemberImages = [MEMBERIMAGE, []];
@@ -330,6 +373,7 @@ const App = () => {
 
         // memberImageRate
 
+        // 임시 업로드한 이미지들 중 업로드 타입이 member 인 이미지들에 한해 업데이트된 memberCollection 중 memberImageId 를 찾아 postAndUpdate
         console.log("memberImageRate upload start");
         let targetMemberImageRates = [MEMBERIMAGERATE, []];
         targetMemberImages[1].forEach(({ memberId, imageUrl, name }) => {
@@ -348,40 +392,42 @@ const App = () => {
           });
         });
 
+        // 마지막은 Post만
         await postDocuments(targetMemberImageRates);
         console.log("memberImageRate upload done");
       };
 
+      // 무사히 업로드를 끝마쳤다면 setIsUploadEnd 로 조작 불가능한 화면 렌더링
       console.log('done!');
       setIsUploadEnd(true);
     } catch (error) { console.error(error); };
   };
 
-  return !initialCollection ? (
+	return (!initialCollection ?
     <>
       <input
         type="file"
-        onChange={handleFileInput}
+        onChange={handleUpdateImages}
         multiple
       />
     </>
-  ) : isUploadEnd ? (<h1>UPLOAD FINISH!!!</h1>) : (
+    : isUploadEnd ? <h1>UPLOAD FINISH!!!</h1> :
     <>
       <input
         type="file"
-        onChange={handleFileInput}
+        onChange={handleUpdateImages}
         multiple
       />
-      <button onClick={handleUploadImages}>SEND</button>
+      <button onClick={handleUploadFiles}>SEND</button>
       <br></br>
       <br></br>
       <ImageList
         images={images}
         onChange={handleChange}
-        onClick={handleEditText}
+        onClick={handleEditFileName}
       />
     </>
   );
-}
+};
 
 export default memo(App);
