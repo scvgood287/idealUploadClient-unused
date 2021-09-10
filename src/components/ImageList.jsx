@@ -1,7 +1,7 @@
 import React, { memo, useState } from 'react';
 import uuid from 'react-uuid';
 
-import ImageForm from './ImageForm';
+import GroupBundles from './GroupBundles';
 import { UPLOADTYPE_ERR as ERR } from '../Dictionary';
 
 const ImageList = (props) => {
@@ -52,8 +52,8 @@ const ImageList = (props) => {
       {SelectMedium}
       <br></br>
       <br></br>
-      <ul key={uuid()}>
-        <ImageForm
+      <ul>
+        <GroupBundles
           images={images[largeCategory][mediumCategory]}
           showBy={largeCategory === ERR ? mediumCategory : largeCategory}
           onChange={onChange}
