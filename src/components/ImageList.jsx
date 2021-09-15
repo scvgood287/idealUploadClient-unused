@@ -5,7 +5,7 @@ import GroupBundles from './GroupBundles';
 import { UPLOADTYPE_ERR as ERR } from '../Dictionary';
 
 const ImageList = (props) => {
-  const { images, onChange, onClick } = props;
+  const { images, input, onChange, onClick } = props;
 
   // App.jsx 에서 받아온 images state 의 키 값들 중 0번째 값을 대분류 default 로 설정한다.
   const largeCategories = Object.keys(images);
@@ -55,6 +55,7 @@ const ImageList = (props) => {
       <ul>
         <GroupBundles
           images={images[largeCategory][mediumCategory]}
+          input={input}
           showBy={largeCategory === ERR ? mediumCategory : largeCategory}
           onChange={onChange}
           onClick={onClick}

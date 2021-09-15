@@ -4,7 +4,7 @@ import uuid from 'react-uuid';
 import ImageForm from './ImageForm';
 
 const MemberBundles = (props) => {
-  const { images, onChange, onClick } = props;
+  const { images, input, onChange, onClick } = props;
 
   const bundles = [...images.reduce((acc, { member }) => acc.add(member), new Set([]))].map((member) => {
     const targetImages = images.reduce((acc, image) => {
@@ -19,6 +19,7 @@ const MemberBundles = (props) => {
         <ul>
           <ImageForm
             images={targetImages}
+            input={input}
             onChange={onChange}
             onClick={onClick}
           />

@@ -7,6 +7,7 @@ const GENDER_GIRL = "women";
 const GENDER_MIXED = "mixed";
 
 const NEW = "new";
+const COMPAREBY = "fileName";
 
 // UPLOADTYPE
 const UPLOADTYPE_ERR = "err";
@@ -39,6 +40,7 @@ const REQUESTTARGET_COLLECTIONS = "collections";
 const REQUESTTARGET_DOCUMENTS = "documents";
 
 // COLLECTION
+const COLLECTION_ALL = "all";
 const COLLECTION_GENDER = "gender";
 const COLLECTION_GROUP = "group";
 const COLLECTION_GROUPIMAGE = "groupImage";
@@ -57,6 +59,7 @@ export {
   GENDER_MIXED,
 
   NEW,
+  COMPAREBY,
 
   UPLOADTYPE_ERR,
   UPLOADTYPE_MEMBER,
@@ -82,6 +85,7 @@ export {
   REQUESTTARGET_COLLECTIONS,
   REQUESTTARGET_DOCUMENTS,
 
+  COLLECTION_ALL,
   COLLECTION_GENDER,
   COLLECTION_GROUP,
   COLLECTION_GROUPIMAGE,

@@ -1,15 +1,18 @@
 import React, { memo, useState } from 'react';
-import _ from 'lodash';
 import uuid from 'react-uuid';
+import _ from 'lodash';
 
-import ImageList from './components/ImageList';
+import ImageList from 'components/ImageList';
 import {
   editImage,
+  categorizeImage,
   insertImage,
-  resData,
-  isUnusableName,
+  isUnusableName
+} from 'utils/index';
+import {
+  customAsync,
   uploadToS3
-} from './apis/index';
+} from 'apis/index';
 import {
   CANNOT_USE_THIS,
   REGION,
@@ -19,6 +22,8 @@ import {
   REQUESTTARGET_COLLECTIONS as COLLECTIONS,
   REQUESTTARGET_DOCUMENTS as DOCUMENTS,
   NEW,
+  COMPAREBY,
+  COLLECTION_ALL as ALL,
   COLLECTION_GENDER as GENDER,
   COLLECTION_GROUP as GROUP,
   COLLECTION_GROUPIMAGE as GROUPIMAGE,
@@ -26,10 +31,7 @@ import {
   COLLECTION_MEMBER as MEMBER,
   COLLECTION_MEMBERIMAGE as MEMBERIMAGE,
   COLLECTION_MEMBERIMAGERATE as MEMBERIMAGERATE
-} from './Dictionary';
-
-const getCollections = async () => await resData(GET, COLLECTIONS);
-const postDocuments = async (body) => await resData(POST, DOCUMENTS, body);
+} from 'Dictionary';
 
 const App = () => {
   const [images, setImages] = useState({
@@ -59,17 +61,24 @@ const App = () => {
 	
   // isUploadEnd ? 조작 불가능하도록 아무것도 렌더링하지 않음 : 업로드를 위한 조작 화면
   const [isUploadEnd, setIsUploadEnd] = useState(false);
+
+  const getCollections = customAsync(GET, `${COLLECTIONS}`);
+  const postDocuments = customAsync(POST, `${DOCUMENTS}`);
   
 	// App.jsx/handleUpdateImages
   const handleUpdateImages = async (e) => {
     try {
       // !initialCollection ? 아직 Get 요청 한 적 없으니 요청 후 setInitialCollection : 그대로 사용
-      const data = initialCollection || await getCollections();
-      if (!initialCollection) { setInitialCollection(data); };
+      let data = initialCollection;
+      if (!data) {
+        const response = await getCollections(ALL);
+        data = response.data;
+        setInitialCollection(data);
+      };
       console.log(data);
   
-      const files = [...e.target.files];
-      const temp = _.cloneDeep(images);
+      let files = [...e.target.files];
+      let temp = {...images};
   
       // !needToInsertImage ?
       // files forEach 루프 도중, 다른 불필요한 작업을 중단. 임시 업로드 요청 거부
@@ -90,7 +99,12 @@ const App = () => {
         if (isUnusableName(validName, images) || files.filter(({ name: tempName }) => tempName.slice(0, tempName.lastIndexOf(".")).toLowerCase() === validName ).length > 1) {
           wrongImages.add(name);
           needToInsertImage = false;
-        } else if (needToInsertImage) { insertImage(temp, editImage(file, data)); };
+        } else if (needToInsertImage) {
+          const categorizedImage = categorizeImage(editImage(file, data));
+          const { largeCategory, mediumCategory } = categorizedImage.categorized;
+
+          temp[largeCategory][mediumCategory] = insertImage(temp[largeCategory][mediumCategory], categorizedImage, COMPAREBY);
+        };
       });
   
       // 임시 업로드 거부 및 throw new Error
@@ -104,7 +118,8 @@ const App = () => {
           \t1-2. 파일명에 사용할 수 없는 특수기호 목록 :
           ${CANNOT_USE_THIS.map((c, i) => `\n\t\t1-2-${i + 1} : ${c}`)}\n
           2. "."의 개수가 파일명과 확장자명 구분을 위한 1개 보다 더 많습니다.\n
-          3. 기존에 임시 업로드한 파일이나 동시에 업로드한 파일들 중 파일명이 중복된 파일이 존재합니다. 파일명 중복검사는 대소문자를 구분하지 않으니 유의해주십시오.\n
+          3. 파일명은 공백이 될 수 없습니다.
+          4. 기존에 임시 업로드한 파일이나 동시에 업로드한 파일들 중 파일명이 중복된 파일이 존재합니다. 파일명 중복검사는 대소문자를 구분하지 않으니 유의해주십시오.\n
           \n
           해당하는 파일명 목록 : ${[...wrongImages].map((fileName, i) => `\n\t${i + 1}. ${fileName}`)}`
         );
@@ -120,16 +135,18 @@ const App = () => {
 
 	// App.jsx/handleEditFileName
 	const handleEditFileName = (e) => {
+    console.log(input);
+    console.log(images);
     try {
-      // !e.isEditable ? 수정 가능하게 한 뒤, input 기본 값은 해당 파일의 파일명
+      // !e.isEdit ? 수정 가능하게 한 뒤, input 기본 값은 해당 파일의 파일명
       // : 입력한 파일명이 사용 불가능한 파일명이라면 ? 수정 거부 및 throw new Error, handleEditFileName End
       // : images 에서 해당 파일을 지운 뒤, editAndInsert 로 올바른 위치에 재분류 후 setImages
-      if (!e.isEditable) {
-        e.isEditable = !e.isEditable;
-        setInput(e.editableName);
+      if (!e.isEdit) {
+        e.isEdit = !e.isEdit;
+        setInput(e[COMPAREBY]);
       } else if (isUnusableName(input.toLowerCase(), images)) {
-        e.isEditable = !e.isEditable;
-        setInput('');
+        e.isEdit = !e.isEdit;
+        setInput();
         throw new Error(
           `아래 중 하나 이상의 이유로 파일명 수정 요청이 거부됩니다.\n
           다른 파일명을 입력해주세요.\n
@@ -139,7 +156,8 @@ const App = () => {
           \t1-2. 파일명에 사용할 수 없는 특수 기호 목록 :
           ${CANNOT_USE_THIS.map((c, i) => `\n\t\t1-2-${i + 1} : ${c}`)}\n
           2. 파일명 편집 시에는 확장자명은 편집 할 수 없고, 파일명만 편집 가능하므로 확장자명을 제외한 파일명만 입력 가능합니다. ("." 사용 불가)\n
-          3. 기존에 임시 업로드한 파일 중 파일명이 중복된 파일이 존재합니다. 파일명 중복검사는 대소문자를 구분하지 않으니 유의해주십시오.`
+          3. 파일명은 공백이 될 수 없습니다.
+          4. 기존에 임시 업로드한 파일 중 파일명이 중복된 파일이 존재합니다. 파일명 중복검사는 대소문자를 구분하지 않으니 유의해주십시오.`
         );
       } else {
         const { largeCategory, mediumCategory } = e.categorized;
@@ -147,9 +165,12 @@ const App = () => {
         let temp = _.cloneDeep(images);
         temp[largeCategory][mediumCategory] = images[largeCategory][mediumCategory].filter(image => image !== e);
         
-        insertImage(temp, editImage(e, initialCollection, [input, e.extension]));
+        const categorizedImage = categorizeImage(editImage(e, initialCollection, [input, e.extension]));
+        const { largeCategory: newLargeCategory, mediumCategory: newMediumCategory } = categorizedImage.categorized;
+
+        temp[newLargeCategory][newMediumCategory] = insertImage(temp[newLargeCategory][newMediumCategory], categorizedImage, COMPAREBY);
   
-        setInput('');
+        setInput();
         setImages(temp);
       };
     } catch (error) { console.error(error); };
@@ -158,7 +179,7 @@ const App = () => {
 	// App.jsx/handleUploadFiles
 	const handleUploadFiles = async () => {
     try {
-      const temp = _.cloneDeep(images);
+      let temp = {...images};
       const { err: uploadErr, member: uploadMember, group: uploadGroup } = temp;
 
       // Error
@@ -167,20 +188,19 @@ const App = () => {
       if ((Object.values(uploadErr).reduce((acc, curr) => (acc + curr.length), 0) !== 0)) { throw new Error(('아직 수정하지 않은 ERROR 파일이 존재합니다.')) };
 
       // REQUEST Start!
-
       
-      let collections = _.cloneDeep(initialCollection);
+      let collections = {...initialCollection};
       let { gender: genderCollection, group: groupCollection, groupImage: groupImageCollection, member: memberCollection, memberImage: memberImageCollection } = collections;
 
       // uploadData 는 Post 요청 시 같이 보낼 body, update 는 collection 의 이름
       // Post 요청 이후, Post 요청이 적용된 db 를 다시 불러와 collections 를 업데이트,
       // Post 요청으로 업데이트된 collection 을 반환한다.
-      const postAndUpdate = async (uploadData, update) => {
-        await postDocuments(uploadData);
-        collections = await getCollections();
+      const postAndUpdate = async (targetCollection, body) => {
+        await postDocuments(targetCollection, body);
+        const response = await getCollections(targetCollection);
 
-        return collections[update];
-      }
+        return response.data[targetCollection];
+      };
 
       // 임시 업로드한 모든 성별, 그룹, 멤버 목록
       let genders = new Set();
@@ -226,10 +246,10 @@ const App = () => {
 		  // 새로운 성별이 있을때만 postAndUpdate
       if (newGenders.length !== 0) {
         console.log("gender upload start");
-        let targetGenders = [GENDER, []];
-        newGenders.forEach(([name]) => targetGenders[1].push({ name }));
+        let targetGenders = [];
+        newGenders.forEach(([name]) => targetGenders.push({ name }));
 
-        genderCollection = await postAndUpdate(targetGenders, GENDER);
+        genderCollection = await postAndUpdate(GENDER, targetGenders);
         console.log("gender upload done");
       };
 
@@ -246,10 +266,10 @@ const App = () => {
       // 새로운 그룹이 있을때만 postAndUpdate
       if (newGroups.length !== 0) {
         console.log("group upload start");
-        let targetGroups = [GROUP, []];
-        newGroups.forEach(([gender, name]) => targetGroups[1].push({ genderId: genderIds[gender], name }));
+        let targetGroups = [];
+        newGroups.forEach(([gender, name]) => targetGroups.push({ genderId: genderIds[gender], name }));
 
-        groupCollection = await postAndUpdate(targetGroups, GROUP);
+        groupCollection = await postAndUpdate(GROUP, targetGroups);
         console.log("group upload done");
       };
 
@@ -270,39 +290,42 @@ const App = () => {
       // 임시 업로드한 이미지들 중 업로드 타입이 group 인 이미지가 하나라도 있으면 이미지를 AWS S3 업로드 및 postAndUpdate
       if (Object.values(uploadGroup).some(e => e.length > 0)) {
         console.log("groupImage upload start");
-        let targetGroupImages = [GROUPIMAGE, []];
+        let targetGroupImages = [];
         Object.values(uploadGroup).forEach(c => c.forEach((file) => {
-          const { gender, group, type } = file;
+          const { gender, group, file: originalFile } = file;
+          const type = originalFile.type;
 
           const nameId = uuid().replaceAll("-", "");
           const name = `images/groupImages/${gender}/${group}/${nameId}.${type.split("/")[1]}`;
           const imageUrl = `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${name}`;
 
-          uploadToS3(file, name, type);
+          console.log(`Start Upload GroupImage To AWS S3!`);
+          uploadToS3(originalFile, name, type);
+          console.log(`Done Upload GroupImage To AWS S3!`);
 
           const genderId = genderIds[gender];
           const groupId = groupIds[group][genderId];
 
-          targetGroupImages[1].push({ groupId, imageUrl, name });
+          targetGroupImages.push({ groupId, imageUrl, name });
         }));
 
-        groupImageCollection = await postAndUpdate(targetGroupImages, GROUPIMAGE);
+        groupImageCollection = await postAndUpdate(GROUPIMAGE, targetGroupImages);
         console.log("groupImage upload done");
 
         // groupImageRate
 
         // 임시 업로드한 이미지들 중 업로드 타입이 group 인 이미지들에 한해
-        // 업데이트된 groupCollection 중 groupImageId 를 찾아 postAndUpdate
+        // 업데이트된 groupCollection 중 groupImageId 를 찾아 post
         console.log("groupImageRate upload start");
-        let targetGroupImageRates = [GROUPIMAGERATE, []];
-        targetGroupImages[1].forEach(({ groupId, imageUrl, name }) => {
+        let targetGroupImageRates = [];
+        targetGroupImages.forEach(({ groupId, imageUrl, name }) => {
           const groupImageId = groupImageCollection[groupImageCollection.findIndex(({ name: existedName, imageUrl: existedImageUrl, groupId: existedGroupId }) => (
             existedName === name &&
             existedImageUrl === imageUrl &&
             existedGroupId === groupId
           ))]._id;
 
-          targetGroupImageRates[1].push({
+          targetGroupImageRates.push({
             groupImageId,
             first: 0,
             entry: 0,
@@ -311,7 +334,7 @@ const App = () => {
           });
         });
 
-        await postDocuments(targetGroupImageRates);
+        await postDocuments(GROUPIMAGERATE, targetGroupImageRates);
         console.log("groupImageRate upload done");
       };
 
@@ -320,15 +343,15 @@ const App = () => {
 		  // 새로운 멤버가 있다면 postAndUpdate
       if (newMembers.length !== 0) {
         console.log("member upload start");
-        let targetMembers = [MEMBER, []];
+        let targetMembers = [];
         newMembers.forEach(([gender, group, name]) => {
           const genderId = genderIds[gender];
           const groupId = groupIds[group][genderId];
 
-          targetMembers[1].push({ genderId, groupId, name });
+          targetMembers.push({ genderId, groupId, name });
         });
 
-        memberCollection = await postAndUpdate(targetMembers, MEMBER);
+        memberCollection = await postAndUpdate(MEMBER, targetMembers);
         console.log("member upload done");
       };
 
@@ -351,39 +374,42 @@ const App = () => {
       // 임시 업로드한 이미지들 중 업로드 타입이 member 인 이미지가 하나라도 있으면 이미지를 AWS S3 업로드 및 postAndUpdate
       if (Object.values(uploadMember).some(e => e.length > 0)) {
         console.log("memberImage upload start");
-        let targetMemberImages = [MEMBERIMAGE, []];
+        let targetMemberImages = [];
         Object.values(uploadMember).forEach(c => c.forEach((file) => {
-          const { gender, group, member, type } = file;
+          const { gender, group, member, file: originalFile } = file;
+          const type = originalFile.type;
 
           const nameId = uuid().replaceAll("-", "");
           const name = `images/memberImages/${gender}/${group}/${member}/${nameId}.${type.split("/")[1]}`;
           const imageUrl = `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${name}`;
 
-          uploadToS3(file, name, type);
+          console.log(`Start Upload MemberImage To AWS S3!`);
+          uploadToS3(originalFile, name, type);
+          console.log(`Done Upload MemberImage To AWS S3!`);
 
           const genderId = genderIds[gender];
           const groupId = groupIds[group][genderId];
           const memberId = memberIds[member][groupId][genderId];
 
-          targetMemberImages[1].push({ memberId, imageUrl, name });
+          targetMemberImages.push({ memberId, imageUrl, name });
         }));
 
-        memberImageCollection = await postAndUpdate(targetMemberImages, MEMBERIMAGE);
+        memberImageCollection = await postAndUpdate(MEMBERIMAGE, targetMemberImages);
         console.log("memberImage upload done");
 
         // memberImageRate
 
-        // 임시 업로드한 이미지들 중 업로드 타입이 member 인 이미지들에 한해 업데이트된 memberCollection 중 memberImageId 를 찾아 postAndUpdate
+        // 임시 업로드한 이미지들 중 업로드 타입이 member 인 이미지들에 한해 업데이트된 memberCollection 중 memberImageId 를 찾아 post
         console.log("memberImageRate upload start");
-        let targetMemberImageRates = [MEMBERIMAGERATE, []];
-        targetMemberImages[1].forEach(({ memberId, imageUrl, name }) => {
+        let targetMemberImageRates = [];
+        targetMemberImages.forEach(({ memberId, imageUrl, name }) => {
           const memberImageId = memberImageCollection[memberImageCollection.findIndex(({ name: existedName, imageUrl: existedImageUrl, memberId: existedMemberId }) => (
             existedName === name &&
             existedImageUrl === imageUrl &&
             existedMemberId === memberId
           ))]._id;
 
-          targetMemberImageRates[1].push({
+          targetMemberImageRates.push({
             memberImageId,
             first: 0,
             entry: 0,
@@ -393,7 +419,7 @@ const App = () => {
         });
 
         // 마지막은 Post만
-        await postDocuments(targetMemberImageRates);
+        await postDocuments(MEMBERIMAGERATE, targetMemberImageRates);
         console.log("memberImageRate upload done");
       };
 
@@ -423,6 +449,7 @@ const App = () => {
       <br></br>
       <ImageList
         images={images}
+        input={input}
         onChange={handleChange}
         onClick={handleEditFileName}
       />

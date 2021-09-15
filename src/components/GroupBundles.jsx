@@ -9,7 +9,7 @@ import {
 } from '../Dictionary';
 
 const GroupBundles = (props) => {
-  const { images, showBy, onChange, onClick } = props;
+  const { images, input, showBy, onChange, onClick } = props;
 
   const bundles = [...images.reduce((acc, { group }) => acc.add(group), new Set([]))].map((group) => {
     const targetImages = images.reduce((acc, image) => {
@@ -25,12 +25,14 @@ const GroupBundles = (props) => {
           {showBy === MEMBER ? (
             <MemberBundles
               images={targetImages}
+              input={input}
               onChange={onChange}
               onClick={onClick}
             />
           ) : (
             <ImageForm
               images={targetImages}
+              input={input}
               onChange={onChange}
               onClick={onClick}
             />
@@ -40,7 +42,13 @@ const GroupBundles = (props) => {
     );
   });
 
-  return (showBy === LABELING ? <ImageForm images={images} onChange={onChange} onClick={onClick}/> : bundles);
+  return (showBy === LABELING ?
+    <ImageForm
+      images={images}
+      input={input}
+      onChange={onChange}
+      onClick={onClick}
+    /> : bundles);
 };
 
 export default memo(GroupBundles);
