@@ -1,11 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import App from './App.jsx';
 import reportWebVitals from './reportWebVitals';
+import { Provider } from 'jotai';
+
+import './index.css';
+import App from './App.jsx';
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <Provider>
+      <App />
+    </Provider>
   </React.StrictMode>,
   document.getElementById('root')
 );

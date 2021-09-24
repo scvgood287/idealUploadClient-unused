@@ -6,25 +6,21 @@ const GENDER_BOY = "men";
 const GENDER_GIRL = "women";
 const GENDER_MIXED = "mixed";
 
-const NEW = "new";
-const COMPAREBY = "fileName";
+const MEDIUMCATEGORY_NEW = "new";
+
+const CRITERIA_UPLOADTYPE = "uploadType";
+const CRITERIA_GENDER = "gender";
+const CRITERIA_GROUP = "group";
+const CRITERIA_MEMBER = "member";
 
 // UPLOADTYPE
-const UPLOADTYPE_ERR = "err";
+const UPLOADTYPE_ERROR = "error";
 const UPLOADTYPE_MEMBER = "member";
 const UPLOADTYPE_GROUP = "group";
 
 // ERRTYPE
 const ERRTYPE_LABELING = "labeling";
-
-// API_URL
-const API_URL = "http://localhost:8000/api/ideals";
-const ACCESS_ID = "AKIARWY3ZOJ6GHLHZMJI";
-const ACCESS_KEY = "JtoJhmGh5CXN9VYGh/QXgpOpG1p4qL1LRrYFwTHl";
-const BUCKET_NAME = "ideals-bucket";
-const DIR_NAME = "idealimages";
-const REGION = "ap-northeast-2";
-const IDENTITYPOOLID = "IdentityPoolId:ap-northeast-2:ca1cfcae-8b4e-439c-9f1b-a421944d0712";
+const ERRTYPE_GENDER = "gender";
 
 //ACTIONTYPE
 const ACTIONTYPE_LOADING = "LOADING";
@@ -58,23 +54,20 @@ export {
   GENDER_GIRL,
   GENDER_MIXED,
 
-  NEW,
-  COMPAREBY,
+  MEDIUMCATEGORY_NEW,
 
-  UPLOADTYPE_ERR,
+  CRITERIA_UPLOADTYPE,
+  CRITERIA_GENDER,
+  CRITERIA_GROUP,
+  CRITERIA_MEMBER,
+
+  UPLOADTYPE_ERROR,
   UPLOADTYPE_MEMBER,
   UPLOADTYPE_GROUP,
 
   ERRTYPE_LABELING,
-
-  API_URL,
-  ACCESS_ID,
-  ACCESS_KEY,
-  BUCKET_NAME,
-  DIR_NAME,
-  REGION,
-  IDENTITYPOOLID,
-
+  ERRTYPE_GENDER,
+  
   ACTIONTYPE_LOADING,
   ACTIONTYPE_SUCCESS,
   ACTIONTYPE_ERROR,
