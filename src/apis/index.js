@@ -2,7 +2,7 @@ import axios from 'axios';
 import AWS from 'aws-sdk';
 
 const customAsync = (reqType, target) => {
-  const asyncFunction = (option, body) => axios[reqType](`${process.env.REACT_APP_API_URL}/${target}/${option}`, body);
+  const asyncFunction = (option, body) => axios[reqType](`${process.env.REACT_APP_API_URL}/${target}${option ? `/${option}` : ""}`, body);
   return asyncFunction;
 };
 

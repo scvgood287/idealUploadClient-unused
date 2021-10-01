@@ -11,6 +11,7 @@ const getCollection = customAsync(GET, COLLECTIONS);
 
 const initialCollectionsAtom = atom(async () => {
   const response = await getCollection(ALL);
+  console.log("get start");
   return response.data;
 });
 

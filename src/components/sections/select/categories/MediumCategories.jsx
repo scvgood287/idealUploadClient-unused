@@ -20,7 +20,7 @@ const MediumCategories = () => {
     <RadioBoxStyle key={uuid()}>
       <MediumCategoriesRadioStyle
         type="radio"
-        onClick={() => setCurrentMediumCategory(mediumCategory)}
+        onChange={() => setCurrentMediumCategory(mediumCategory)}
         checked={mediumCategory === currentMediumCategory}
       />
       <div>{mediumCategory}</div>

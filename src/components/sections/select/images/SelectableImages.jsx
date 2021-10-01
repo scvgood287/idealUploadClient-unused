@@ -57,10 +57,7 @@ const SelectableImages = () => {
     // const categories = criteria.map(criterion => <div key={uuid()}>{items[0][criterion]}</div>);
 
     return (
-      <>
-        {/* {categories} */}
-        <CategorizedImages key={uuid()} categorizedImages={items}/>
-      </>
+      <CategorizedImages key={uuid()} categorizedImages={items}/>
     );
   });
 
