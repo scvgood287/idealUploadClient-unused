@@ -125,7 +125,7 @@ const SendImages = () => {
 
           const nameId = uuid().replaceAll("-", "");
           const name = `images/groupImages/${gender}/${group}/${nameId}.${type.split("/")[1]}`;
-          const imageUrl = `https://${process.env.REACT_APP_BUCKET_NAME}.s3.${process.env.REACT_APP_REGION}.amazonaws.com/${name}`;
+          const imageUrl = `${process.env.REACT_APP_S3_URL}/${name}`;
 
           console.log(`Start Upload GroupImage To AWS S3!`);
           uploadToS3(originalFile, name, type);
@@ -203,7 +203,7 @@ const SendImages = () => {
 
           const nameId = uuid().replaceAll("-", "");
           const name = `images/memberImages/${gender}/${group}/${member}/${nameId}.${type.split("/")[1]}`;
-          const imageUrl = `https://${process.env.REACT_APP_BUCKET_NAME}.s3.${process.env.REACT_APP_REGION}.amazonaws.com/${name}`;
+          const imageUrl = `${process.env.REACT_APP_S3_URL}/${name}`;
 
           console.log(`Start Upload MemberImage To AWS S3!`);
           uploadToS3(originalFile, name, type);

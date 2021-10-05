@@ -3,8 +3,7 @@ import ReactDOM from 'react-dom';
 import reportWebVitals from './reportWebVitals';
 import { Provider } from 'jotai';
 
-import './index.css';
-import App from './App.jsx';
+import App from 'App.jsx';
 
 ReactDOM.render(
   <React.StrictMode>

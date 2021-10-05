@@ -1,6 +1,6 @@
 import React, { memo, Suspense } from 'react';
 
-import { Uploader } from './components';
+import { Uploader } from 'components';
 
 const App = () => {
 
