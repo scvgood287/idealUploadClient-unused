@@ -43,18 +43,15 @@ const ImageUploader = () => {
 
       if (!needToInsertImage) {
         const errorMessage = 
-        `아래 중 하나 이상의 이유로 업로드 요청이 거부됩니다.\n
-        파일명을 수정하여 다시 업로드해주세요.\n
-        \n
+        `아래 중 하나 이상의 이유로 업로드 요청이 거부됩니다. 파일명을 수정하여 다시 업로드해주세요.\n
         1. 파일명에 사용할 수 없는 특수기호나 여백(space)이 포함되어 있습니다.\n
-        \t1-1. 파일명에 사용 가능한 특수기호 : "_" (파일의 속성을 구분할때만 사용가능. 그 이외에는 사용 시 오류. 예) uploadType_gender_group_member_index)\n
-        \t1-2. 파일명에 사용할 수 없는 특수기호 목록 :
+        1-1. 파일명에 사용 가능한 특수기호 : "_" (파일의 속성을 구분할때만 사용가능)\n
+        1-2. 파일명에 사용할 수 없는 특수기호 목록 :
         ${CANNOT_USE_THIS.map(e => `"${e}"`).join(' , ')}\n
         2. "."의 개수가 파일명과 확장자명 구분을 위한 1개 보다 더 많습니다.\n
         3. 파일명은 공백이 될 수 없습니다.
         4. 기존에 임시 업로드한 파일이나 동시에 업로드한 파일들 중 파일명이 중복된 파일이 존재합니다. 파일명 중복검사는 대소문자를 구분하지 않으니 유의해주십시오.\n
-        \n
-        해당하는 파일명 목록 : ${[...wrongImages].map((fileName, index) => `\n\t${index + 1}. ${fileName}`)}`;
+        해당하는 파일명 목록 : ${[...wrongImages].map((fileName, index) => `\n${index + 1}. ${fileName}`)}`;
 
         setErrorMessage(errorMessage);
 

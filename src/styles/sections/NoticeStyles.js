@@ -22,6 +22,7 @@ const NoticeWrapperStyle = styled.div`
 
 const NoticesStyle = styled.div`
   width: 100%;
+  overflow: auto;
 `;
 
 const SendImagesStyle = styled.div`
