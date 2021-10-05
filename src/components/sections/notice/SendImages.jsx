@@ -31,8 +31,8 @@ const SendImages = () => {
 
   const handleUploadImages = async () => {
     try {
-      if (images.some(({ categorized }) => categorized.largeCategory === ERROR)) {
-        const temp = '아직 수정하지 않은 ERROR 파일이 존재합니다.';
+      if (images.length === 0 || images.some(({ categorized }) => categorized.largeCategory === ERROR)) {
+        const temp = '업로드 할 이미지가 없거나, 아직 수정하지 않은 ERROR 파일이 존재합니다.';
         setErrorMessage(temp);
         throw new Error(temp);
       };
