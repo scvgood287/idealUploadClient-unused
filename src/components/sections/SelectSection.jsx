@@ -3,15 +3,15 @@ import { useAtom } from 'jotai';
 
 import { Categories, Images, ImageUploader } from './select';
 import { SelectStyle } from 'styles';
-import { imagesAtom } from 'hooks/states';
+import { isUsingNowAtom } from 'hooks/states';
 
 const SelectSection = () => {
-  const [images] = useAtom(imagesAtom);
+  const [isUsingNow] = useAtom(isUsingNowAtom);
 
   return (
     <SelectStyle>
       <ImageUploader />
-      {images.length === 0 ? null : (
+      {!isUsingNow ? null : (
         <>
           <Categories />
           <Images />

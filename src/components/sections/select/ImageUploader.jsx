@@ -1,7 +1,7 @@
 import React, { memo, useRef } from 'react';
 import { useAtom } from 'jotai';
 
-import { imagesAtom, initialCollectionsAtom, errorMessageAtom } from 'hooks/states';
+import { imagesAtom, initialCollectionsAtom, errorMessageAtom, isUsingNowAtom, isDoneAtom } from 'hooks/states';
 import { ImageUploaderStyle } from 'styles';
 import imageUploadIcon from 'resources/add.png';
 import {
@@ -17,6 +17,8 @@ const ImageUploader = () => {
   const [images, setImages] = useAtom(imagesAtom);
   const [initialCollections] = useAtom(initialCollectionsAtom);
   const [, setErrorMessage] = useAtom(errorMessageAtom);
+  const [isUsingNow, setIsUsingNow] = useAtom(isUsingNowAtom);
+  const [isDone] = useAtom(isDoneAtom);
 
   const fileInput = useRef(null);
   const changeCTASize = useRef(null);
@@ -25,6 +27,16 @@ const ImageUploader = () => {
 
   const handleUpdateImages = (e) => {
     try {
+      if (isDone) {
+        const temp = "최종 업로드를 끝마쳤습니다. 이미지 업로더를 다시 사용하시려면 새로고침 해주세요.";
+        setErrorMessage(temp);
+        throw new Error(temp);
+      };
+      if (!isUsingNow) {
+        changeCTASize.current.style.height = "60px";
+        setIsUsingNow(true);
+      };
+
       let newImages = [...images];
       let files = [...e.target.files];
 
@@ -44,9 +56,9 @@ const ImageUploader = () => {
       if (!needToInsertImage) {
         const errorMessage = 
         `아래 중 하나 이상의 이유로 업로드 요청이 거부됩니다. 파일명을 수정하여 다시 업로드해주세요.\n
-        1. 파일명에 사용할 수 없는 특수기호나 여백(space)이 포함되어 있습니다.\n
-        1-1. 파일명에 사용 가능한 특수기호 : "_" (파일의 속성을 구분할때만 사용가능)\n
-        1-2. 파일명에 사용할 수 없는 특수기호 목록 :
+        1. 파일명에 정해진 특수 기호를 제외한 나머지 특수 기호나 여백(space)이 포함되어 있습니다.\n
+        1-1. 파일명에 사용할 수 있는 특수 기호 : "_" (파일의 속성을 구분할때만 사용가능)\n
+        1-2. 파일명에 사용할 수 없는 특수 기호 목록 :
         ${CANNOT_USE_THIS.map(e => `"${e}"`).join(' , ')}\n
         2. "."의 개수가 파일명과 확장자명 구분을 위한 1개 보다 더 많습니다.\n
         3. 파일명은 공백이 될 수 없습니다.
@@ -58,7 +70,6 @@ const ImageUploader = () => {
         throw new Error(errorMessage);
       };
 
-      changeCTASize.current.style.height = "60px";
       setErrorMessage();
       setImages(newImages);
     } catch (err) { console.error(err); };
@@ -67,7 +78,7 @@ const ImageUploader = () => {
   return (
     <>
       <ImageUploaderStyle ref={changeCTASize} onClick={() => handleUpdate()}>
-        <img src={imageUploadIcon} alt={imageUploadIcon} style={{ width: images.length === 0 ? '60px' : '40px' }}/>
+        <img src={imageUploadIcon} alt={imageUploadIcon} style={{ width: !isUsingNow ? '60px' : '40px' }}/>
       </ImageUploaderStyle>
       <input
         type="file"

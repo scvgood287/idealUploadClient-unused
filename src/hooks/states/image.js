@@ -1,9 +1,6 @@
 import { atom } from 'jotai';
 
-const initialImages = [];
-
-const imagesAtom = atom(initialImages);
-
+const imagesAtom = atom([]);
 const viewImageAtom = atom();
 
 export {

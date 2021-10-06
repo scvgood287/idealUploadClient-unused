@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { useAtom } from 'jotai';
 import uuid from 'react-uuid';
 
-import { imagesAtom, initialCollectionsAtom, errorMessageAtom } from 'hooks/states';
+import { imagesAtom, initialCollectionsAtom, errorMessageAtom, isDoneAtom } from 'hooks/states';
 import { SendImagesStyle } from 'styles';
 import { CTAButton } from 'components';
 import { customAsync, uploadToS3 } from 'apis';
@@ -27,7 +27,8 @@ const postDocuments = customAsync(POST, DOCUMENTS);
 const SendImages = () => {
   const [images] = useAtom(imagesAtom);
   const [initialCollections] = useAtom(initialCollectionsAtom);
-  const [errorMessage, setErrorMessage] = useAtom(errorMessageAtom);
+  const [, setErrorMessage] = useAtom(errorMessageAtom);
+  const [, setIsDone] = useAtom(isDoneAtom);
 
   const handleUploadImages = async () => {
     try {
@@ -243,13 +244,16 @@ const SendImages = () => {
         console.log("memberImageRate upload done");
       };
 
-      setErrorMessage('upload done!');
-    } catch (err) { console.error(err); };
+      setErrorMessage('Upload Done!');
+      setIsDone(true);
+    } catch (err) {
+      setErrorMessage(err);
+      console.error(err);
+    };
   };
 
   return (
     <SendImagesStyle>
-      {!errorMessage ? <div>No Error Message</div> : ""}
       <CTAButton onClick={handleUploadImages}>Send</CTAButton>
     </SendImagesStyle>
   );

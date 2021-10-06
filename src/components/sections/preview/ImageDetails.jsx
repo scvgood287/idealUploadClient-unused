@@ -1,7 +1,7 @@
 import React, { memo, useState } from 'react';
 import { useAtom } from 'jotai';
 
-import { imagesAtom, viewImageAtom, initialCollectionsAtom, errorMessageAtom } from 'hooks/states';
+import { imagesAtom, viewImageAtom, initialCollectionsAtom, errorMessageAtom, isDoneAtom } from 'hooks/states';
 import { CTAButton } from 'components';
 import {
   ImageDetailsStyle,
@@ -24,13 +24,21 @@ const ImageDetails = () => {
   const [, setErrorMessage] = useAtom(errorMessageAtom);
   const [input, setInput] = useState("");
   const [isEditable, setIsEditable] = useState(false);
+  const [isDone] = useAtom(isDoneAtom);
 
   const handleChange = (e) => { setInput(e.target.value); };
 
   const handleEditFileName = () => {
-    const { fileName, extension } = viewImage;
     try {
+      if (isDone) {
+        const temp = "최종 업로드를 끝마쳤습니다. 이미지 업로더를 다시 사용하시려면 새로고침 해주세요.";
+        setErrorMessage(temp);
+        throw new Error(temp);
+      };
+
+      const { fileName, extension } = viewImage;
       setIsEditable(!isEditable);
+      
       if (!isEditable) { setInput(fileName); }
       else {
         setInput("");
@@ -38,8 +46,8 @@ const ImageDetails = () => {
         if (isUnusableName(input.toLowerCase(), images)) {
           const errorMessage =
           `아래 중 하나 이상의 이유로 파일명 수정 요청이 거부됩니다. 다른 파일명을 입력해주세요.\n
-          1. 파일명에 사용할 수 없는 특수기호나 여백(space)이 포함되어 있습니다.\n
-          1-1. 파일명에 사용 가능한 특수기호 : "_" (파일의 속성을 구분할때만 사용가능)\n
+          1. 파일명에 정해진 특수 기호를 제외한 나머지 특수 기호나 여백(space)이 포함되어 있습니다.\n
+          1-1. 파일명에 사용할 수 있는 특수 기호 : "_" (파일의 속성을 구분할때만 사용가능)\n
           1-2. 파일명에 사용할 수 없는 특수 기호 목록 :
           ${CANNOT_USE_THIS.map(e => `"${e}"`).join(' , ')}\n
           2. 파일명 편집 시에는 확장자명은 편집 할 수 없고, 파일명만 편집 가능하므로 확장자명을 제외한 파일명만 입력 가능합니다.\n
@@ -61,19 +69,27 @@ const ImageDetails = () => {
   };
 
   const handleDeleteImage = () => {
-    setInput("");
-    setIsEditable(false);
-    setImages(images.filter(image => image !== viewImage));
-    setErrorMessage();
-    setViewImage();
+    try {
+      if (isDone) {
+        const temp = "최종 업로드를 끝마쳤습니다. 이미지 업로더를 다시 사용하시려면 새로고침 해주세요.";
+        setErrorMessage(temp);
+        throw new Error(temp);
+      };
+
+      setInput("");
+      setIsEditable(false);
+      setImages(images.filter(image => image !== viewImage));
+      setErrorMessage();
+      setViewImage();
+    } catch (err) { console.error(err); };
   };
 
   return !viewImage ? null : (
     <ImageDetailsStyle>
       <ImageCategoriesStyle>{`${viewImage.categorized.largeCategory} - ${viewImage.categorized.mediumCategory}`}</ImageCategoriesStyle>
       <ImageInformationStyle>
-        {!isEditable ? <div>FileName : {viewImage.fileName}</div> : <input type="text" onChange={handleChange}/>}
-        <div>Extension : {viewImage.extension}</div>
+        {!isEditable ? <div>파일명 : {viewImage.fileName}</div> : <input type="text" onChange={handleChange}/>}
+        <div>확장자명 : {viewImage.extension}</div>
       </ImageInformationStyle>
       <CTAButton onClick={handleEditFileName}>Edit</CTAButton>
       <CTAButton onClick={handleDeleteImage} isDelete>Delete</CTAButton>

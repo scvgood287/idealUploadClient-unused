@@ -4,7 +4,6 @@ import { SelectSection, PreviewSection, NoticeSection } from 'components/section
 import { UploaderStyle } from 'styles';
 
 const Uploader = () => {
-  
   return (
     <UploaderStyle>
       <SelectSection/>

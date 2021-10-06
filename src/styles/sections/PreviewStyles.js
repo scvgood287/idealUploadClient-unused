@@ -46,9 +46,12 @@ const ImageCategoriesStyle = styled.p`
 `;
 
 const ImageInformationStyle = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   width: 442px;
   height: 60px;
-  padding: 12px 18px 12px 18px;
+  padding: 0 18px;
   box-sizing: border-box;
   background: #FFFFFF;
   box-shadow: 0px 4px 20px rgba(159, 159, 159, 0.25);

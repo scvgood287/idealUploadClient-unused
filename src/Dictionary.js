@@ -1,9 +1,9 @@
 // "_" 에 한해 제한된 횟수만큼 사용 가능, 그 외에는 사용 불가.
-const CANNOT_USE_THIS = [".", " ", "~", "₩", "`", "!", "@", "#", "%", "^", "&", "*", "(", ")", "+", "=", "{", "[", "}", "]", "|", ":", ";", "'", '"', "<", ">", ",", "?", "/"];
+const CANNOT_USE_THIS = [" ", "!", '"', "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "\\", "]", "^", "`", "{", "|", "}", "~", "₩"];
 
 // GENDER
-const GENDER_BOY = "men";
-const GENDER_GIRL = "women";
+const GENDER_BOY = "boy";
+const GENDER_GIRL = "girl";
 const GENDER_MIXED = "mixed";
 
 const MEDIUMCATEGORY_NEW = "new";
